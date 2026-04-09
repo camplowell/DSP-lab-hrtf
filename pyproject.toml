@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-dsp-lab-hrtf = "dsp_lab_hrtf:main"
+hrtf = "dsp_lab_hrtf:main"
 
 [build-system]
 requires = ["uv_build>=0.10.6,<0.11.0"]

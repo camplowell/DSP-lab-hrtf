@@ -1,0 +1,23 @@
+[project]
+name = "dsp-lab-hrtf"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Lowell Camp", email = "camplowell@gmail.com" },
+    { name = "Liam Wintz" },
+]
+requires-python = ">=3.13"
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.4",
+    "scipy>=1.17.1",
+    "sofar>=1.2.3",
+]
+
+[project.scripts]
+dsp-lab-hrtf = "dsp_lab_hrtf:main"
+
+[build-system]
+requires = ["uv_build>=0.10.6,<0.11.0"]
+build-backend = "uv_build"

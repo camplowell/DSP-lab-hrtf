@@ -1,3 +1,17 @@
+# Mac stuff
+
+# General
+.DS_Store
+.localized
+__MACOSX/
+.AppleDouble
+.LSOverride
+Icon[]
+
+# Thumbnails
+._*
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

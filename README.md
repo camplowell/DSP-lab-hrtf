@@ -33,3 +33,7 @@ source .venv/bin/activate
 pip install -e .
 hrtf
 ```
+
+## Resources
+
+[SOFA database](https://www.sofaconventions.org/mediawiki/index.php/Files)

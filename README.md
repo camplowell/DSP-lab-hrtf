@@ -23,6 +23,7 @@ Measurement positions:
 - Radius: 76cm
 - 72 azimuths: [0, 5, 10, ..., 355]
 - 9 elevations: [-57, -30, -15, 0, 15, 30, 45, 60, 75]
+- Positional: []
 
 Sofar Inspect
 GLOBAL_Conventions : SOFA

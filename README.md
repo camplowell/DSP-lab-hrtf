@@ -14,6 +14,67 @@ Like many container formats, it can actually store information in a variety of f
 - SimpleFreeFieldHRTF: Similar to SimpleFreeFieldHRIR, but stores the transfer function in the frequency domain.
 - SimpleFreeFieldHRSOS: Similar to SimpleFreeFieldHRIR, but stores the transfer function as second order sections (SOS).
 
+### SOFA structure
+We are currently using data from MIT_KEMAR
+Data set: https://sofacoustics.org/data/database/mit/
+Website: https://3d3a.princeton.edu/3d3a-lab-head-related-transfer-function-database
+
+Measurement positions:
+- Radius: 76cm
+- 72 azimuths: [0, 5, 10, ..., 355]
+- 9 elevations: [-57, -30, -15, 0, 15, 30, 45, 60, 75]
+
+Sofar Inspect
+GLOBAL_Conventions : SOFA
+GLOBAL_Version : 1.0
+GLOBAL_SOFAConventions : SimpleFreeFieldHRIR
+GLOBAL_SOFAConventionsVersion : 1.0
+GLOBAL_APIName : ARI SOFA API for Matlab/Octave
+GLOBAL_APIVersion : 1.1.1
+GLOBAL_ApplicationName : ARI converter
+GLOBAL_ApplicationVersion :
+GLOBAL_AuthorContact : piotr@majdak.com
+GLOBAL_Comment : Converted by Piotr Majdak (piotr@majdak.com) and Michael Mihocic, Acoustics Research Institute, OeAW
+GLOBAL_DataType : FIR
+GLOBAL_History : Converted from the MIT database
+GLOBAL_License : This HRTF data is provided without any usage restrictions. It is requested that you cite Gardner and Martin (1995) when using this data for research or commercial applications.
+GLOBAL_Organization : MIT Media Lab
+GLOBAL_References : Gardner, W. G., and Martin, K. D. (1995). "HRTF measurements of a KEMAR," J Acoust Soc Am 97, 3907-3908.
+GLOBAL_RoomType : free field
+GLOBAL_Origin : http://sound.media.mit.edu/resources/KEMAR.html
+GLOBAL_DateCreated : 1999-11-16 20:01:52
+GLOBAL_DateModified : 2020-03-24 13:46:08
+GLOBAL_Title : HRTF
+GLOBAL_DatabaseName : MIT
+GLOBAL_ListenerShortName : KEMAR, normal pinna
+ListenerPosition : (I=1, C=3)
+  [0. 0. 0.]
+ListenerPosition_Type : cartesian
+ListenerPosition_Units : metre
+ReceiverPosition : (R=2, C=3, I=1)
+  [[ 0.    0.09  0.  ]
+   [ 0.   -0.09  0.  ]]
+ReceiverPosition_Type : cartesian
+ReceiverPosition_Units : metre
+SourcePosition : (M=710, C=3)
+SourcePosition_Type : spherical
+SourcePosition_Units : degree, degree, metre
+EmitterPosition : (E=1, C=3, I=1)
+  [0. 0. 0.]
+EmitterPosition_Type : cartesian
+EmitterPosition_Units : metre
+ListenerUp : (I=1, C=3)
+  [0. 0. 1.]
+ListenerView : (I=1, C=3)
+  [1. 0. 0.]
+ListenerView_Type : cartesian
+ListenerView_Units : metre
+Data_IR : (M=710, R=2, N=512)
+Data_SamplingRate : 44100.0
+Data_SamplingRate_Units : hertz
+Data_Delay : (I=1, R=2)
+  [0. 0.]
+
 ## Running
 This project was developed using Python 3.13.
 

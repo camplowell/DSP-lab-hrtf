@@ -5,12 +5,32 @@ from importlib import resources
 from multiprocessing.synchronize import Event
 from pathlib import Path
 
+import numpy as np
+import sofar
+from matplotlib import pyplot as plt
+
 
 def main():
     args = parser.parse_args()
     audio_path: Path = args.audio
     hrtf_path: Path = args.hrtf
     print(audio_path, hrtf_path)
+
+    # TESTING; temporary graphing.
+
+    sofa: sofar.Sofa = sofar.read_sofa(hrtf_path)
+    fig = plt.figure()
+    ax = fig.add_subplot(projection="3d")
+    positions: np.ndarray = getattr(sofa, "SourcePosition")
+    r = positions[:, 2]
+    azimuth = np.deg2rad(positions[:, 0])
+    elevation = np.deg2rad(positions[:, 1])
+    ax.scatter(
+        r * np.cos(elevation) * np.cos(azimuth),
+        r * np.cos(elevation) * np.sin(azimuth),
+        r * np.sin(elevation),  # pyright: ignore[reportArgumentType]
+    )
+    plt.show()
 
 
 parser = argparse.ArgumentParser(

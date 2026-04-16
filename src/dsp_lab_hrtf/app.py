@@ -25,11 +25,23 @@ def main():
     r = positions[:, 2]
     azimuth = np.deg2rad(positions[:, 0])
     elevation = np.deg2rad(positions[:, 1])
-    ax.scatter(
-        r * np.cos(elevation) * np.cos(azimuth),
-        r * np.cos(elevation) * np.sin(azimuth),
-        r * np.sin(elevation),  # pyright: ignore[reportArgumentType]
+    points = np.ndarray(shape=positions.shape)
+    points[:, 0] = r * np.cos(elevation) * np.cos(azimuth)
+    points[:, 1] = r * np.cos(elevation) * np.sin(azimuth)
+    points[:, 2] = r * np.sin(elevation)
+
+    query = (0, 1, 1.5)
+    closest = np.argmax(np.vecdot(points, query))
+    highlight = np.arange(points.shape[0]) == closest
+
+    ax.scatter3D(
+        points[~highlight, 0], points[~highlight, 1], points[~highlight, 2], s=15
     )
+    ax.scatter3D(
+        points[highlight, 0], points[highlight, 1], points[highlight, 2], color="red"
+    )
+    ax.scatter3D(*query, color="green", s=60)  # pyright: ignore[reportArgumentType]
+    ax.axis("equal")
     plt.show()
 
 

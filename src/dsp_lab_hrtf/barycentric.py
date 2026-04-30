@@ -2,6 +2,7 @@ import numpy as np
 from scipy.spatial import ConvexHull
 from sofar import Sofa
 from matplotlib import pyplot as plt
+import time
 
 
 class BarycentricInterpolator:
@@ -32,6 +33,8 @@ class BarycentricInterpolator:
 
     def query(self, pos: np.ndarray) -> np.ndarray:
         """Get the impulse response for the given position"""
+
+        t0 = time.perf_counter()
         #print('Query Runnin')
         pos = pos / np.linalg.norm(pos)
         #print(self.convex_hull.vertices)
@@ -51,13 +54,17 @@ class BarycentricInterpolator:
 
             if uv is None:
                 continue
+            
+            t1 = time.perf_counter() - t0
+            print('Bary time:', t1)
+            
             return (
                 (1 - uv[0] - uv[1]) * self.hrir[facet[0]]
                 + uv[0] * self.hrir[facet[1]]
                 + uv[1] * self.hrir[facet[2]]
             )
         
-        
+
         print(reason)
         fig = plt.figure()
         ax = fig.add_subplot(projection="3d")

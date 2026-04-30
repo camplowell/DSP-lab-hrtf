@@ -8,6 +8,7 @@ import time
 from scipy.signal import lfilter, lfilter_zi
 from dsp_lab_hrtf.barycentric import BarycentricInterpolator
 from dsp_lab_hrtf.ring_buffers import Accumulator
+import time
 
 def polar2cart (p_array):
     c_array = np.zeros(p_array.shape)
@@ -79,8 +80,7 @@ def rotator(points):
         pos_index[i,:] = [x+t,y-t,z]
     return pos_index
 
-current_pos_i = [1,0,0]
-
+# READ IN WAV FILE
 wavefile = 'data/author.wav'
 wf          = wave.open(wavefile, 'rb')
 RATE        = wf.getframerate()
@@ -89,64 +89,59 @@ LEN         = wf.getnframes()
 CHANNELS    = wf.getnchannels()
 
 wf_in = wf.readframes(LEN)
-wf_data = struct.unpack('h'*LEN, wf_in)
-max_val = np.max(wf_data)
+wf_data = np.array(struct.unpack('h'*LEN, wf_in))
 
-#data, pos, pos_array = file_handle("data\hrtf b_nh172.sofa")
+# GRAB SOFA
 sofa = sf.read_sofa("data/hrtf b_nh172.sofa")
 interpolator = BarycentricInterpolator(sofa)
 
+# BUILD ARC
 steps = 360
-
 pos_index = rotator(steps)
 
-BLOCKLEN = 256
+# INITIALIZE
+BLOCKLEN = 512 * 16
 sec_per_pos = 0.01
-white_data = make_white(int(RATE * sec_per_pos * steps))
-
+current_pos_i = [1,0,0]
 
 current_pos_i = np.array([1,0,0], dtype=np.float64)
+cache_pos_i = current_pos_i
 ir = interpolator.query(current_pos_i)
 current_ir = interpolator.query(current_pos_i)
-zi_L = lfilter_zi(current_ir[0].astype(np.float64), [1.0]) * 0
-zi_R = lfilter_zi(current_ir[1].astype(np.float64), [1.0]) * 0
 
-accumulate = Accumulator(current_ir.shape, current_ir.dtype)
+accumulate = Accumulator(current_ir.T.shape, current_ir.dtype)
 
 def callback(in_data, frame_count, time_info, status):
-    global j, zi_L, zi_R, current_pos_i, ir
+    global j, current_pos_i, cache_pos_i, ir
 
-    ir = interpolator.query(current_pos_i)
+    t = time.perf_counter()
 
-    ir_L = ir[0]
-    ir_R = ir[1]
+    if not((current_pos_i == cache_pos_i).all()):
+        ir = interpolator.query(current_pos_i)
+        cache_pos_i = current_pos_i
 
-    if j + BLOCKLEN > LEN:
-        block_in = np.append(wf_data[j:LEN], wf_data[0:BLOCKLEN-(LEN-j)])
+    G = 5
 
-    else:
-        block_in = wf_data[j : j + BLOCKLEN]
+    ret = np.zeros((BLOCKLEN, 2))
+    for i in range(0, BLOCKLEN):
+
+        in_pt = wf_data[(j+i) % LEN]
+        in_ir = in_pt * ir * G
+        ret[i] = accumulate.splat(in_ir.T)
     
-    
-
+    """ in_pt = wf_data[j]
+    in_ir = in_pt * ir * G
+    ret = accumulate.splat(in_ir.T)
+ """
     j = (j + BLOCKLEN) % LEN
 
-    block_L, zi_L = lfilter(ir_L, [1.0], block_in, zi=zi_L)
-    block_R, zi_R = lfilter(ir_R, [1.0], block_in, zi=zi_R)
+    output_block = np.empty(2*BLOCKLEN, dtype=np.int16)
+    output_block[0::2] = np.clip(ret[:,0], -32768, 32767).astype(np.int16)
+    output_block[1::2] = np.clip(ret[:,1], -32768, 32767).astype(np.int16)
 
-    input_max = max(np.max(np.abs(block_L)), np.max(np.abs(block_R)))
-    if input_max > 0:
-        G = 5
-        scale = G * 32767 / max_val
-        block_L = block_L * scale
-        block_R = block_R * scale
-
-    output_block = np.empty(BLOCKLEN * 2, dtype=np.int16)
-    output_block[0::2] = np.clip(block_L, -32768, 32767).astype(np.int16)
-    output_block[1::2] = np.clip(block_R, -32768, 32767).astype(np.int16)
-    
-    with open('test_multipt.txt', 'ab') as f:
-        np.savetxt(f, output_block)
+    t1 = time.perf_counter() - t
+    if t1 > .01:
+        print('Too long', t1)
 
     return (output_block.tobytes(), pyaudio.paContinue)
 
@@ -155,7 +150,7 @@ PA_FORMAT = p.get_format_from_width(WIDTH)
 stream = p.open(
     format = PA_FORMAT,
     channels = 2,
-    rate = RATE,
+    rate = int(RATE),
     input = False,
     output = True,
     frames_per_buffer = BLOCKLEN,
@@ -168,8 +163,8 @@ try:
     while True:
         for i_pos in pos_index:
             current_pos_i = i_pos
-            
-            time.sleep(0.01)
+            time.sleep(0.1)
+
 except KeyboardInterrupt:
     pass
 

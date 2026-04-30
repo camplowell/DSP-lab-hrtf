@@ -6,6 +6,7 @@ import pyaudio
 import struct
 import time
 from scipy.signal import lfilter, lfilter_zi
+from dsp_lab_hrtf.barycentric import BarycentricInterpolator
 
 def polar2cart (p_array):
     c_array = np.zeros(p_array.shape)
@@ -73,12 +74,11 @@ def rotator(points):
         x = np.cos(ii)
         y = np.sin(ii)
         z = 0
-        pos_index[i,:] = [x,y,z]
+        t = .1
+        pos_index[i,:] = [x+t,y-t,z]
     return pos_index
 
 current_pos_i = [1,0,0]
-
-
 
 wavefile = 'data/author.wav'
 wf          = wave.open(wavefile, 'rb')
@@ -90,10 +90,10 @@ CHANNELS    = wf.getnchannels()
 wf_in = wf.readframes(LEN)
 wf_data = struct.unpack('h'*LEN, wf_in)
 max_val = np.max(wf_data)
-print(max_val)
 
-
-data, pos, pos_array = file_handle("data\hrtf b_nh172.sofa")
+#data, pos, pos_array = file_handle("data\hrtf b_nh172.sofa")
+sofa = sf.read_sofa("data/hrtf b_nh172.sofa")
+interpolator = BarycentricInterpolator(sofa)
 
 steps = 360
 
@@ -104,19 +104,19 @@ sec_per_pos = 0.01
 white_data = make_white(int(RATE * sec_per_pos * steps))
 
 
-actual_pos = nearest_dot([1,0,0], pos_array)
-current_ir_L = data[actual_pos, 0, :].astype(np.float64)
-current_ir_R = data[actual_pos, 1, :].astype(np.float64)
-zi_L = lfilter_zi(current_ir_L, [1.0]) * 0
-zi_R = lfilter_zi(current_ir_R, [1.0]) * 0
-
-
+current_pos_i = np.array([1,0,0], dtype=np.float64)
+ir = interpolator.query(current_pos_i)
+current_ir = interpolator.query(current_pos_i)
+zi_L = lfilter_zi(current_ir[0].astype(np.float64), [1.0]) * 0
+zi_R = lfilter_zi(current_ir[1].astype(np.float64), [1.0]) * 0
 
 def callback(in_data, frame_count, time_info, status):
-    global j, zi_L, zi_R, current_pos_i
+    global j, zi_L, zi_R, current_pos_i, ir
 
-    ir_L = data[current_pos_i, 0, :]
-    ir_R = data[current_pos_i, 1, :]
+    ir = interpolator.query(current_pos_i)
+
+    ir_L = ir[0]
+    ir_R = ir[1]
 
     if j + BLOCKLEN > LEN:
         block_in = np.append(wf_data[j:LEN], wf_data[0:BLOCKLEN-(LEN-j)])
@@ -150,7 +150,7 @@ stream = p.open(
     rate = RATE,
     input = False,
     output = True,
-    frames_per_buffer =BLOCKLEN,
+    frames_per_buffer = BLOCKLEN,
     stream_callback = callback)
 
 j = 0
@@ -159,13 +159,12 @@ stream.start_stream()
 try:
     while True:
         for i_pos in pos_index:
-            actual_pos = nearest_dot(i_pos, pos_array)
-            current_pos_i = actual_pos
+            current_pos_i = i_pos
+            
             time.sleep(0.01)
 except KeyboardInterrupt:
     pass
 
-#plt.ioff()
 stream.stop_stream()
 stream.close()
 p.terminate()

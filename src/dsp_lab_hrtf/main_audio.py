@@ -23,6 +23,9 @@ class AudioMain(AudioProcess):
 
     def callback(self, out: np.ndarray, frame_count: int):
         x = self.x_src.next(frame_count)
+        # out[:, 0] = x[:, 0]
+        # out[:, 1] = x[:, 0]
+        x = x[:, 0].reshape((-1, 1))
         irs = np.empty((frame_count, 2, 64), np.float32)
         next_query_pos = self.context.query_pos.copy()
         for i, direction in zip(
@@ -34,7 +37,8 @@ class AudioMain(AudioProcess):
             ),
         ):
             irs[i] = self.encoding.query(
-                direction, x[i]
+                direction, x[i] * 2
             )[:, :64]
         self.accum.convolve(irs, out)
         self.query_pos[:] = next_query_pos
+        # print(np.var(out))

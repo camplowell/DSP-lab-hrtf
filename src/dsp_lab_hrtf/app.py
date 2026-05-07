@@ -6,6 +6,7 @@ from multiprocessing.synchronize import Event
 from pathlib import Path
 import sofar
 from ctypes import c_double
+from scipy import signal
 
 from .context import Context
 from .main_gui import Gui
@@ -45,7 +46,10 @@ def main():
 
     # Download wav file in mono
     wavefile = WaveFile.from_file(str(audio_path)).mix_to_mono()
+    wavefile.samples = signal.resample(wavefile.samples, int(len(wavefile.samples) * 16000 / wavefile.sample_rate))
+    wavefile.sample_rate = 16000
 
+    print(wavefile.sample_rate)
     # Download sofa file resampled to wav file sampling rate
     sofa = sofar.read_sofa(str(hrtf_path))
     new_sofa = resample_hrtf(sofa, wavefile.sample_rate)

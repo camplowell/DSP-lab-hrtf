@@ -5,7 +5,6 @@ from importlib import resources
 from multiprocessing.synchronize import Event
 from pathlib import Path
 import sofar
-import numpy as np
 from ctypes import c_double
 
 from .context import Context
@@ -39,6 +38,8 @@ def main():
 
     # Move the query_pos array into shared memory
     query_array = multiprocessing.RawArray(c_double, 3)
+    query_array[0] = 1
+    context = Context(query_array)
     print(hrtf_path)
     print(audio_path)
 
@@ -54,7 +55,7 @@ def main():
         wavefile, 
         BarycentricEncoding(new_sofa),
     )
-    run(audio, Gui, shared_arr=query_array)
+    run(audio, Gui, context=context)
 
 
 parser = argparse.ArgumentParser(
@@ -81,7 +82,7 @@ class HasMain(typing.Protocol):
     def main(self, stop: Event): ...
 
 
-def run(main: HasMain, *aux: HasMain, shared_arr):
+def run(main: HasMain, *aux: HasMain, context: Context):
     from multiprocessing import Process
     stop = multiprocessing.Event()
     processes: list[Process] = list()
@@ -89,13 +90,13 @@ def run(main: HasMain, *aux: HasMain, shared_arr):
         p = Process(
             name=type(m).__name__,
             target=m.main,
-            args=(stop, shared_arr),
+            args=(stop, context),
         )
         p.start()
         processes.append(p)
     print("Press ^C to exit.")
     try:
-        main.main(stop, shared_arr)
+        main.main(stop, context)
     except KeyboardInterrupt:
         pass
     finally:

@@ -24,12 +24,12 @@ class AudioMain(AudioProcess):
     def callback(self, out: np.ndarray, frame_count: int):
         x = self.x_src.next(frame_count)
         irs = np.empty((frame_count, 2, 64), np.float32)
-        next_query_pos = self.context.query_pos
+        next_query_pos = self.context.query_pos.copy()
         for i, direction in zip(
             range(frame_count),
             np.linspace(
                 self.query_pos,
-                self.context.query_pos,
+                next_query_pos,
                 frame_count,
             ),
         ):

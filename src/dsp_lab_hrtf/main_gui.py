@@ -61,7 +61,7 @@ class Gui(Tk.Tk):
         # Draw, lower updating flag, pass data out
         self.fig.canvas.draw()
         self.updating = False
-        self.context.query_pos[:] = self.hold['x'], self.hold['y'], self.hold['z']
+        np.frombuffer(self.context.query_pos)[:] = self.hold['x'], self.hold['y'], self.hold['z']
     
     def layout(self):
         matplotlib.use('TkAgg')
@@ -168,11 +168,7 @@ class Gui(Tk.Tk):
 
 
     @staticmethod
-    def main(stop: Event, shared_arr):
-
-        query_pos = np.frombuffer(shared_arr)
-        query_pos[0] = 1
-        context = Context(query_pos)
+    def main(stop: Event, context: Context):
         gui = Gui(stop, context)
         gui.layout()
         gui.check_stop()

@@ -32,13 +32,8 @@ class AudioProcess(ABC):
         assert self.__input is not None
         return self.__input
 
-    def main(self, stop: Event, shared_arr):
+    def main(self, stop: Event, context: Context):
         import pyaudio
-
-
-        query_pos = np.frombuffer(shared_arr)
-        query_pos[0] = 1
-        context = Context(query_pos)
         self.setup(context)
 
         def stream_callback(

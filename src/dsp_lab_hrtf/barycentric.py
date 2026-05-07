@@ -5,17 +5,20 @@ from scipy.spatial import ConvexHull
 from sofar import Sofa
 from tqdm import tqdm
 
+from numba.experimental import jitclass
+import numba
 
+@jitclass
 class Triangle:
-    indices: np.ndarray
-    v0: np.ndarray
-    v1: np.ndarray
-    v2: np.ndarray
-    _normal: np.ndarray
-    # normal: np.ndarray
-    d: float
+    indices: numba.uintc[:]  # np.ndarray[np.intc]
+    v0: numba.float64[::1]  # np.ndarray[np.float64]
+    v1: numba.float64[::1]  # np.ndarray[np.float64]
+    v2: numba.float64[::1]  # np.ndarray[np.float64]
+    _normal: numba.float64[::1]  # np.ndarray[np.float64]
+    # normal: numba.float64[::1]  # np.ndarray[np.float64]
+    d: numba.float64
 
-    def __init__(self, positions: np.ndarray, indices: np.ndarray):
+    def __init__(self, positions: numba.float64[:, ::1], indices: numba.uintc[:]):
         self.indices = indices
         self.v0 = positions[indices[0]]
         self.v1 = positions[indices[1]]
@@ -55,6 +58,15 @@ class Triangle:
 
         out[:] = u, v, (1 - u - v)
         return True, out
+
+    def __hash__(self) -> int:
+        return sorted(self.indices)
+
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, Triangle):
+            return False
+        return np.array_equal(sorted(self.indices), sorted(value.indices))
+
 
 
 def bounds(*vectors: np.ndarray):

@@ -17,7 +17,7 @@ class AudioMain(AudioProcess):
     def setup(self, context: Context):
         self.context = context
         self.query_pos = self.context.query_pos.copy()
-        self.accum = Accumulator((128, 2), np.float32)
+        self.accum = Accumulator((128, 2))#, np.float32)
         self.sample_rate = self.x_src.sample_rate
         self.frames_per_buffer = 256
 

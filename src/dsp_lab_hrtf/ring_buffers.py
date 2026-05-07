@@ -3,14 +3,18 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import DTypeLike
 
+import numba
+from numba.experimental import jitclass
 
+@jitclass
 class Accumulator:
-    __slots__ = ("samples", "i_write")
+    samples: numba.float32[:, ::1]  # pyright: ignore[reportInvalidTypeForm, reportGeneralTypeIssues]
+    i_write: int
 
-    def __init__(self, shape: tuple[int, int], dtype: DTypeLike):
-        self.samples = np.zeros(shape, dtype)
-        self.i_write: int = 0
- 
+    def __init__(self, shape: tuple[int, int]):
+        self.samples = np.zeros(shape, np.float32)
+        self.i_write = 0
+
     def splat(self, data: np.ndarray) -> float:
         """Add a single sample's contribution to the accumulator, returning the convolved sample."""
         part1: int = min(data.shape[0], self.samples.shape[0] - self.i_write)

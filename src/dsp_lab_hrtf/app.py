@@ -46,8 +46,8 @@ def main():
 
     # Download wav file in mono
     wavefile = WaveFile.from_file(str(audio_path)).mix_to_mono()
-    wavefile.samples = signal.resample(wavefile.samples, int(len(wavefile.samples) * 16000 / wavefile.sample_rate))
-    wavefile.sample_rate = 16000
+    # wavefile.samples = signal.resample(wavefile.samples, int(len(wavefile.samples) * 16000 / wavefile.sample_rate))
+    # wavefile.sample_rate = 16000
 
     print(wavefile.sample_rate)
     # Download sofa file resampled to wav file sampling rate

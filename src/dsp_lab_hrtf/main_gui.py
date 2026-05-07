@@ -13,10 +13,13 @@ class Gui(Tk.Tk):
     context: Context
     updating: bool = False
 
-    def __init__(self, context: Context):
+    def __init__(self, stop: Event, context: Context):
         super().__init__()
         self.context = context
+        self.stop_event = stop
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
 
+    # Hold buffer to sync changes in cartesian and polar
     hold = {'x': 1,
             'y': 0,
             'z': 0,
@@ -29,13 +32,14 @@ class Gui(Tk.Tk):
             return
         self.updating = True
 
+        # Get variable data
         x = self.pos_x.get()
         y = self.pos_y.get()
         z = self.pos_z.get()
-
         az = self.pos_az.get()
         el = self.pos_el.get()
 
+        # Determine which variables changed on the GUI and sync the rest
         if (az != self.hold['az']) or (el != self.hold['el']):
             self.hold['x'], self.hold['y'], self.hold['z'] = polar2cart([az, el])
             self.hold['az'], self.hold['el'] = az, el
@@ -50,11 +54,12 @@ class Gui(Tk.Tk):
             self.pos_el.set(self.hold['el'])
             self.hold['az'], self.hold['el'] = self.pos_az.get(), self.pos_el.get()
 
+        # Vector line points in selected direction
         self.vec_line.set_data([0,x], [0,y])
         self.vec_line.set_3d_properties([0,z])
 
+        # Draw, lower updating flag, pass data out
         self.fig.canvas.draw()
-
         self.updating = False
         self.context.query_pos[:] = self.hold['x'], self.hold['y'], self.hold['z']
     
@@ -63,10 +68,10 @@ class Gui(Tk.Tk):
 
         self.title('HRTF Position Selector')
 
+        # TK VARIABLES INIT
         self.pos_x = Tk.DoubleVar()
         self.pos_y = Tk.DoubleVar()
         self.pos_z = Tk.DoubleVar()
-
         self.pos_az = Tk.DoubleVar()
         self.pos_el = Tk.DoubleVar()
 
@@ -74,6 +79,7 @@ class Gui(Tk.Tk):
         self.pos_y.set(0)
         self.pos_z.set(0)
 
+        # FIGURE INIT
         self.fig = plt.figure()
         ax = self.fig.add_subplot(111, projection="3d")
 
@@ -161,14 +167,17 @@ class Gui(Tk.Tk):
         self.fig.tight_layout()
 
 
+    @staticmethod
+    def main(stop: Event, shared_arr):
 
-    def main(self, stop: Event):
-        self.stop_event = stop
-        self.protocol("WM_DELETE_WINDOW", self.on_close)
-        self.layout()
-        self.check_stop()
-        self.mainloop()
-    
+        query_pos = np.frombuffer(shared_arr)
+        query_pos[0] = 1
+        context = Context(query_pos)
+        gui = Gui(stop, context)
+        gui.layout()
+        gui.check_stop()
+        gui.mainloop()
+          
     def on_close(self):
         self.stop_event.set()
         self.quit()

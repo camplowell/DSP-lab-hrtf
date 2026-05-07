@@ -8,13 +8,14 @@ from dsp_lab_hrtf.context import Context
 
 @dataclass(slots=True)
 class AudioMain(AudioProcess):
-    context: Context
+    context: Context = field(init=False)
     query_pos: np.ndarray = field(init=False)
     x_src: WaveFile
     encoding: BarycentricEncoding
     accum: Accumulator = field(init=False)
 
-    def __post_init__(self):
+    def setup(self, context: Context):
+        self.context = context
         self.query_pos = self.context.query_pos.copy()
         self.accum = Accumulator((128, 2), np.float32)
         self.sample_rate = self.x_src.sample_rate

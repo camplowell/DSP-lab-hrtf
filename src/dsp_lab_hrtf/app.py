@@ -5,6 +5,8 @@ from importlib import resources
 from multiprocessing.synchronize import Event
 from pathlib import Path
 import sofar
+import numpy as np
+from ctypes import c_double
 
 from .context import Context
 from .main_gui import Gui
@@ -16,6 +18,7 @@ from .resampler import resample_hrtf
 from .data import audio_clips, sofa_files
 
 def main():
+    # multiprocessing.set_start_method("spawn")
     args = parser.parse_args()
     audio_path = args.audio
 
@@ -34,7 +37,8 @@ def main():
         else:
             hrtf_path = Path(hrtf_path)
 
-    ctx = Context()
+    # Move the query_pos array into shared memory
+    query_array = multiprocessing.RawArray(c_double, 3)
     print(hrtf_path)
     print(audio_path)
 
@@ -47,12 +51,10 @@ def main():
 
     # Set up Audio and Gui processes
     audio = AudioMain(
-        ctx, 
         wavefile, 
         BarycentricEncoding(new_sofa),
     )
-    gui = Gui(ctx)
-    run(audio, gui)
+    run(audio, Gui, shared_arr=query_array)
 
 
 parser = argparse.ArgumentParser(
@@ -79,22 +81,21 @@ class HasMain(typing.Protocol):
     def main(self, stop: Event): ...
 
 
-def run(main: HasMain, *aux: HasMain):
+def run(main: HasMain, *aux: HasMain, shared_arr):
     from multiprocessing import Process
-
     stop = multiprocessing.Event()
     processes: list[Process] = list()
     for m in aux:
         p = Process(
             name=type(m).__name__,
             target=m.main,
-            args=(stop,),
+            args=(stop, shared_arr),
         )
         p.start()
         processes.append(p)
     print("Press ^C to exit.")
     try:
-        main.main(stop)
+        main.main(stop, shared_arr)
     except KeyboardInterrupt:
         pass
     finally:

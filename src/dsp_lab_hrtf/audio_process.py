@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from multiprocessing.synchronize import Event
 
+from .context import Context
+
 import numpy as np
 
 
@@ -15,7 +17,7 @@ class AudioProcess(ABC):
     def __post_init__(self):
         assert not hasattr(self, "__dict__")
 
-    def setup(self):
+    def setup(self, context: Context):
         """Load any additional resources that don't need to be present on other processes"""
         pass
 
@@ -30,10 +32,14 @@ class AudioProcess(ABC):
         assert self.__input is not None
         return self.__input
 
-    def main(self, stop: Event):
+    def main(self, stop: Event, shared_arr):
         import pyaudio
 
-        self.setup()
+
+        query_pos = np.frombuffer(shared_arr)
+        query_pos[0] = 1
+        context = Context(query_pos)
+        self.setup(context)
 
         def stream_callback(
             in_data: bytes | None,

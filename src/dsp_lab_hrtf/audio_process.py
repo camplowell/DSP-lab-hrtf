@@ -8,7 +8,7 @@ import numpy as np
 @dataclass(slots=True)
 class AudioProcess(ABC):
     sample_rate: int = field(default=44100, kw_only=True)
-    channels: int = field(default=1, kw_only=True)
+    channels: int = field(default=2, kw_only=True)
     frames_per_buffer: int = field(default=0, kw_only=True)
     __input: np.ndarray | None = field(init=False, default=None)
 
@@ -52,14 +52,16 @@ class AudioProcess(ABC):
                 self.__input = np.frombuffer(in_data, like=out)
             self.callback(out, frame_count)
             np.clip(out, -1, 1, out=out)
-            return out.tobytes(), pyaudio.paContinue
+            out_pcm = np.empty_like(out, dtype=np.int16)
+            np.multiply(out, 2**15-1, out=out_pcm, casting="unsafe")
+            return out_pcm.tobytes(), pyaudio.paContinue
 
         stream: pyaudio.Stream | None = None
         pa = pyaudio.PyAudio()
         try:
             stream = pa.open(
                 rate=self.sample_rate,
-                format=pyaudio.paFloat32,
+                format=pyaudio.paInt16,
                 channels=self.channels,
                 input=False,
                 output=True,

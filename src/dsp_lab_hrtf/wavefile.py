@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -11,8 +12,10 @@ class WaveFile:
     length: int
     samples: np.ndarray
 
-    def __init__(self, path: str):
+    def __init__(self, path: str | Path):
         import wave
+
+        path = str(path)
 
         self.path = path
         with wave.open(path, "rb") as wf:

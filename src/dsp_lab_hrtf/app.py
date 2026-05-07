@@ -4,45 +4,55 @@ import typing
 from importlib import resources
 from multiprocessing.synchronize import Event
 from pathlib import Path
-
-import numpy as np
 import sofar
-from matplotlib import pyplot as plt
 
+from .context import Context
+from .main_gui import Gui
+from .main_audio import AudioMain
+from .ring_buffers import WaveFile
+from .barycentric import BarycentricEncoding
+from .resampler import resample_hrtf
+
+from .data import audio_clips, sofa_files
 
 def main():
     args = parser.parse_args()
-    audio_path: Path = args.audio
+    audio_path = args.audio
+
+    # Search for the audio file
+    with resources.as_file(resources.files(audio_clips)) as clip_root:
+        if clip_root.joinpath(audio_path).exists():
+            audio_path = clip_root.joinpath(audio_path)
+        else:
+            audio_path = Path(audio_path)
+
+    # Search for hrtf file
     hrtf_path: Path = args.hrtf
-    print(audio_path, hrtf_path)
+    with resources.as_file(resources.files(sofa_files)) as sofa_root:
+        if sofa_root.joinpath(hrtf_path).exists():
+            hrtf_path = sofa_root.joinpath(hrtf_path)
+        else:
+            hrtf_path = Path(hrtf_path)
 
-    # TESTING; temporary graphing.
+    ctx = Context()
+    print(hrtf_path)
+    print(audio_path)
 
-    sofa: sofar.Sofa = sofar.read_sofa(hrtf_path)
-    fig = plt.figure()
-    ax = fig.add_subplot(projection="3d")
-    positions: np.ndarray = getattr(sofa, "SourcePosition")
-    r = positions[:, 2]
-    azimuth = np.deg2rad(positions[:, 0])
-    elevation = np.deg2rad(positions[:, 1])
-    points = np.ndarray(shape=positions.shape)
-    points[:, 0] = r * np.cos(elevation) * np.cos(azimuth)
-    points[:, 1] = r * np.cos(elevation) * np.sin(azimuth)
-    points[:, 2] = r * np.sin(elevation)
+    # Download wav file in mono
+    wavefile = WaveFile.from_file(str(audio_path)).mix_to_mono()
 
-    query = (0, 1, 1.5)
-    closest = np.argmax(np.vecdot(points, query))
-    highlight = np.arange(points.shape[0]) == closest
+    # Download sofa file resampled to wav file sampling rate
+    sofa = sofar.read_sofa(str(hrtf_path))
+    new_sofa = resample_hrtf(sofa, wavefile.sample_rate)
 
-    ax.scatter3D(
-        points[~highlight, 0], points[~highlight, 1], points[~highlight, 2], s=15
+    # Set up Audio and Gui processes
+    audio = AudioMain(
+        ctx, 
+        wavefile, 
+        BarycentricEncoding(new_sofa),
     )
-    ax.scatter3D(
-        points[highlight, 0], points[highlight, 1], points[highlight, 2], color="red"
-    )
-    ax.scatter3D(*query, color="green", s=60)  # pyright: ignore[reportArgumentType]
-    ax.axis("equal")
-    plt.show()
+    gui = Gui(ctx)
+    run(audio, gui)
 
 
 parser = argparse.ArgumentParser(
@@ -52,16 +62,15 @@ parser = argparse.ArgumentParser(
 parser.add_argument(
     "-a",
     "--audio",
-    type=Path,
+    type=str,
+    default = "author.wav",
     help="The audio file to play; should be a PCM .wav file",
 )
 parser.add_argument(
     "-f",
     "--hrtf",
-    type=Path,
-    default=resources.files("dsp_lab_hrtf.data").joinpath(
-        "mit_kemar_normal_pinna.sofa"
-    ),
+    type=str,
+    default="hrtf b_nh172.sofa",
     help="The head-related transfer function to use; should be a '.sofa' file.",
 )
 
